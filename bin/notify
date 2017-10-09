@@ -1,0 +1,51 @@
+#!/usr/bin/env bash
+set -e
+
+function fatal {
+echo "$@"
+(>&2 echo "")
+exit 1
+}
+
+function assert_env {
+if [ -z "${!1}" ];
+then
+fatal "You have to define a \"${1}\" env variable"
+fi
+}
+
+function assert_variable {
+if [ -z "${!1}" ];
+then
+fatal "You have to define a \"${1}\" argument\n\nUsage:\n\t<important>$0 channel text picto username</>\n"
+fi
+}
+
+function assert_bin {
+command -v "${1}" >/dev/null 2>&1 || fatal "You have to install the \"${1}\" command"
+}
+
+#################
+# Validate binaries
+#################
+assert_bin "curl"
+
+#################
+# Validate env variables
+#################
+assert_env "SLACK_TOKEN"
+
+#################
+# Validate argument
+#################
+channel=${1}
+text=${2}
+picto=${3}
+username=${4}
+
+assert_variable "channel"
+assert_variable "text"
+assert_variable "picto"
+assert_variable "username"
+
+curl -s -X POST "https://slack.com/api/chat.postMessage?token=${SLACK_TOKEN}&channel=${channel}&text=${text}&icon_emoji=%3A${picto}%3A&username=${username}&pretty=1"
