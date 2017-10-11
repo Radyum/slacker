@@ -1,0 +1,72 @@
+#!/usr/bin/env bash
+set -e
+
+function assert_env {
+    if [ -z "${!1}" ];
+    then
+        echo "You have to define a \"${1}\" env variable"
+        exit 1
+    fi
+}
+
+function assert_variable {
+    if [ -z "${!1}" ];
+    then
+        echo "You have to define a \"${1}\""
+        echo ""
+        echo "Usage:"
+        echo ""
+        echo "send --message <message> --channel <channel> [--icon <icon>] [--author <author>]"
+        echo ""
+        exit 1
+    fi
+}
+
+function assert_bin {
+    command -v "${1}" >/dev/null 2>&1 || fatal "You have to install the \"${1}\" command"
+}
+
+#################
+# Validate binaries
+#################
+assert_bin "curl"
+
+#################
+# Validate env variables
+#################
+assert_env "SLACK_TOKEN"
+
+#################
+# Validate options
+#################
+
+OPTS=`getopt -l author:,icon:,channel:,message: -o a:i:c:m: -- "$@"` || exit 1
+eval set -- "$OPTS"
+
+author="Slacker"
+icon="rocket"
+
+while true; do
+    case "$1" in
+    -a|--author) author="$2"; shift 2;;
+    -i|--icon) icon="$2"; shift 2;;
+    -m|--message) message="$2"; shift 2;;
+    -c|--channel) channel="$2"; shift 2;;
+    --) shift; break;;
+    *) echo Error; exit 1;;
+    esac
+done
+
+assert_variable "author"
+assert_variable "channel"
+assert_variable "icon"
+assert_variable "message"
+
+curl -s -X POST \
+     --data-urlencode "text=${message}" \
+     --data-urlencode "channel=${channel}" \
+     --data-urlencode "icon_emoji=:${icon}:" \
+     --data-urlencode "username=${author}" \
+     --data-urlencode "pretty=1" \
+     --data-urlencode "token=${SLACK_TOKEN}" \
+     https://slack.com/api/chat.postMessage
